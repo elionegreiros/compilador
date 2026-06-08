@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>Compilador HTML/CSS/JS - Sistema de Avaliação</title>
+    <style>
+        /* ========================================
+           ESTILOS DIRETOS NO HTML (GARANTIA DE FUNCIONAMENTO)
+           ======================================== */
+        
+        /* Reset completo */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* App container */
+        .app {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        /* Barra de ferramentas */
+        .toolbar {
+            background: rgba(255,255,255,0.95);
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+
+        .title h1 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .title p {
+            font-size: 11px;
+            color: #666;
+        }
+
+        .controls {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        button {
+            padding: 6px 12px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s;
+            font-weight: bold;
+            border: none;
+            color: white;
+        }
+
+        .btn-primary { background: #3498db; }
+        .btn-primary:hover { background: #2980b9; transform: translateY(-1px); }
+
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; transform: translateY(-1px); }
+
+        .btn-warning { background: #f39c12; }
+        .btn-warning:hover { background: #e67e22; transform: translateY(-1px); }
+
+        .btn-success { background: #27ae60; }
+        .btn-success:hover { background: #229954; transform: translateY(-1px); }
+
+        .btn-evaluate { background: #8e44ad; }
+        .btn-evaluate:hover { background: #7d3c98; transform: translateY(-1px); }
+
+        /* Editores */
+        .editors-area {
+            background: #f5f5f5;
+            border-bottom: 2px solid #ddd;
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+
+        .editors-area.collapsed {
+            height: 40px !important;
+        }
+
+        .editors-header {
+            background: #2c3e50;
+            color: white;
+            padding: 8px 15px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+        }
+
+        .editors-header:hover {
+            background: #34495e;
+        }
+
+        .toggle-icon {
+            font-size: 18px;
+            transition: transform 0.3s;
+        }
+
+        .editors-area.collapsed .toggle-icon {
+            transform: rotate(-90deg);
+        }
+
+        .editors-container {
+            display: flex;
+            gap: 1px;
+            background: #ddd;
+            height: 250px;
+        }
+
+        .editor-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            overflow: hidden;
+            min-width: 0;
+        }
+
+        .editor-header {
+            background: #ecf0f1;
+            color: #333;
+            padding: 6px 10px;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #ddd;
+            flex-wrap: wrap;
+            gap: 5px;
+        }
+
+        .editor-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .editor-fullscreen-btn {
+            background: #27ae60;
+            padding: 2px 8px;
+            font-size: 10px;
+            border-radius: 3px;
+            color: white;
+            cursor: pointer;
+        }
+
+        .char-count {
+            font-size: 10px;
+            background: #bdc3c7;
+            padding: 2px 6px;
+            border-radius: 10px;
+        }
+
+        textarea {
+            width: 100%;
+            height: 100%;
+            padding: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            border: none;
+            resize: none;
+            outline: none;
+            background: #fefefe;
+            line-height: 1.4;
+            overflow: auto;
+        }
+
+        /* Resultado */
+        .result-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            min-height: 0;
+        }
+
+        .result-header {
+            background: #27ae60;
+            color: white;
+            padding: 8px 15px;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .result-container {
+            flex: 1;
+            background: white;
+            overflow: auto;
+        }
+
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            display: block;
+        }
+
+        /* Modal avaliação */
+        .evaluation-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 20000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .evaluation-modal.active {
+            display: flex;
+        }
+
+        .evaluation-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 85vh;
+            overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+        }
+
+        .evaluation-container h2 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .evaluation-container p {
+            color: #666;
+            margin-bottom: 20px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: bold;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            font-size: 14px;
+            font-family: inherit;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .rating {
+            display: flex;
+            gap: 10px;
+            justify-content: space-between;
+        }
+
+        .rating-option {
+            flex: 1;
+            text-align: center;
+        }
+
+        .rating-option input {
+            display: none;
+        }
+
+        .rating-option label {
+            display: block;
+            padding: 10px;
+            background: #f0f0f0;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 20px;
+        }
+
+        .rating-option input:checked + label {
+            background: #667eea;
+            color: white;
+        }
+
+        .rating-option label:hover {
+            background: #ddd;
+        }
+
+        .submit-evaluation {
+            background: #27ae60;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            margin-top: 10px;
+            color: white;
+        }
+
+        .close-modal {
+            background: #95a5a6;
+            margin-top: 10px;
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            color: white;
+        }
+
+        /* Modal tela cheia editor */
+        .editor-fullscreen-modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #1e1e1e;
+            z-index: 10000;
+            display: none;
+            flex-direction: column;
+        }
+
+        .editor-fullscreen-modal.active {
+            display: flex;
+        }
+
+        .modal-header {
+            background: #2c3e50;
+            color: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .modal-header h3 {
+            font-size: 16px;
+        }
+
+        .modal-close {
+            background: #e74c3c;
+            padding: 5px 15px;
+            font-size: 12px;
+            color: white;
+        }
+
+        .modal-textarea {
+            flex: 1;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            padding: 20px;
+            border: none;
+            outline: none;
+            resize: none;
+            line-height: 1.6;
+        }
+
+        /* Status */
+        .status {
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 4px 12px;
+            font-size: 11px;
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            border-radius: 20px;
+            z-index: 1000;
+            pointer-events: none;
+        }
+
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 10px;
+        }
+
+        /* Responsivo */
+        @media (max-width: 768px) {
+            .editors-container {
+                flex-direction: column;
+                height: auto;
+                max-height: 60vh;
+                overflow-y: auto;
+            }
+            .editor-panel {
+                min-height: 180px;
+            }
+            .toolbar {
+                padding: 8px 12px;
+            }
+            .title h1 {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <!-- Barra de Ferramentas -->
+        <div class="toolbar">
+            <div class="title">
+                <h1>🎨 Compilador HTML/CSS/JS</h1>
+                <p>Editor em tempo real | Clique no cabeçalho para recolher/expandir</p>
+            </div>
+            <div class="controls">
+                <button onclick="compileCode()" class="btn-primary">▶ Executar</button>
+                <button onclick="clearAll()" class="btn-danger">🗑 Limpar</button>
+                <button onclick="loadExample()" class="btn-warning">📚 Exemplo</button>
+                <button onclick="toggleFullscreenResult()" class="btn-success">🖥 Tela Cheia</button>
+                <button onclick="openEvaluationModal()" class="btn-evaluate">📝 Enviar Avaliação</button>
+            </div>
+        </div>
+
+        <!-- Editores -->
+        <div class="editors-area" id="editorsArea">
+            <div class="editors-header" onclick="toggleEditors()">
+                <span>📝 EDITORES (HTML | CSS | JS)</span>
+                <span class="toggle-icon">▼</span>
+            </div>
+            <div class="editors-container">
+                <div class="editor-panel">
+                    <div class="editor-header">
+                        <span>📄 HTML</span>
+                        <div class="editor-actions">
+                            <span class="char-count" id="htmlCount">0</span>
+                            <button class="editor-fullscreen-btn" onclick="openEditorFullscreen('html')">🖥 Tela Cheia</button>
+                        </div>
+                    </div>
+                    <textarea id="htmlCode" placeholder="<div><h1>Olá, Mundo!</h1></div>"></textarea>
+                </div>
+                
+                <div class="editor-panel">
+                    <div class="editor-header">
+                        <span>🎨 CSS</span>
+                        <div class="editor-actions">
+                            <span class="char-count" id="cssCount">0</span>
+                            <button class="editor-fullscreen-btn" onclick="openEditorFullscreen('css')">🖥 Tela Cheia</button>
+                        </div>
+                    </div>
+                    <textarea id="cssCode" placeholder="body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: Arial; padding: 20px; color: white; }"></textarea>
+                </div>
+                
+                <div class="editor-panel">
+                    <div class="editor-header">
+                        <span>⚡ JavaScript</span>
+                        <div class="editor-actions">
+                            <span class="char-count" id="jsCount">0</span>
+                            <button class="editor-fullscreen-btn" onclick="openEditorFullscreen('js')">🖥 Tela Cheia</button>
+                        </div>
+                    </div>
+                    <textarea id="jsCode" placeholder="console.log('JavaScript funcionando!');"></textarea>
+                </div>
+            </div>
+        </div>
+
+        <!-- Resultado -->
+        <div class="result-area" id="resultArea">
+            <div class="result-header">
+                <span>👁️ RESULTADO</span>
+                <span>📱 Role para ver tudo</span>
+            </div>
+            <div class="result-container">
+                <iframe id="resultFrame" title="Resultado" sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-modals"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Avaliação -->
+    <div id="evaluationModal" class="evaluation-modal">
+        <div class="evaluation-container">
+            <h2>📝 Avaliação do Aluno</h2>
+            <p>Preencha seus dados e avalie seu aprendizado.</p>
+            
+            <div class="form-group">
+                <label>👤 Nome completo *</label>
+                <input type="text" id="studentName" placeholder="Digite seu nome completo">
+            </div>
+            
+            <div class="form-group">
+                <label>📧 E-mail *</label>
+                <input type="email" id="studentEmail" placeholder="seu@email.com">
+            </div>
+            
+            <div class="form-group">
+                <label>🎓 Turma/Matrícula</label>
+                <input type="text" id="studentClass" placeholder="Ex: T1 - 2024">
+            </div>
+            
+            <div class="form-group">
+                <label>⭐ Autoavaliação (1 a 5)</label>
+                <div class="rating">
+                    <div class="rating-option">
+                        <input type="radio" name="rating" value="1" id="rating1">
+                        <label for="rating1">⭐ 1</label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" name="rating" value="2" id="rating2">
+                        <label for="rating2">⭐⭐ 2</label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" name="rating" value="3" id="rating3">
+                        <label for="rating3">⭐⭐⭐ 3</label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" name="rating" value="4" id="rating4">
+                        <label for="rating4">⭐⭐⭐⭐ 4</label>
+                    </div>
+                    <div class="rating-option">
+                        <input type="radio" name="rating" value="5" id="rating5">
+                        <label for="rating5">⭐⭐⭐⭐⭐ 5</label>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label>💬 Comentários/Sugestões</label>
+                <textarea id="studentComments" rows="3" placeholder="O que você achou do compilador?"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label>📊 Dificuldade principal?</label>
+                <select id="studentDifficulty">
+                    <option value="">Selecione...</option>
+                    <option value="html">HTML (estrutura)</option>
+                    <option value="css">CSS (estilos)</option>
+                    <option value="js">JavaScript (lógica)</option>
+                    <option value="integrar">Integrar as três</option>
+                    <option value="nenhuma">Nenhuma dificuldade</option>
+                </select>
+            </div>
+            
+            <button class="submit-evaluation" onclick="submitEvaluation()">📤 Enviar Avaliação</button>
+            <button class="close-modal" onclick="closeEvaluationModal()">✕ Fechar</button>
+        </div>
+    </div>
+
+    <!-- Modal Tela Cheia Editor -->
+    <div id="fullscreenModal" class="editor-fullscreen-modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">Editor - Tela Cheia</h3>
+            <button class="modal-close" onclick="closeEditorFullscreen()">✕ Fechar (ESC)</button>
+        </div>
+        <textarea id="fullscreenTextarea" class="modal-textarea"></textarea>
+    </div>
+
+    <div class="status" id="status">✅ Pronto</div>
+
+    <script>
+        // ========================================
+        // COMPILADOR
+        // ========================================
+        const htmlEditor = document.getElementById('htmlCode');
+        const cssEditor = document.getElementById('cssCode');
+        const jsEditor = document.getElementById('jsCode');
+        const resultFrame = document.getElementById('resultFrame');
+        const statusDiv = document.getElementById('status');
+        
+        let compileTimeout = null;
+        let isCompiling = false;
+        let editorsCollapsed = false;
+        let currentFullscreenEditor = null;
+
+        function updateCounters() {
+            document.getElementById('htmlCount').innerHTML = htmlEditor.value.length;
+            document.getElementById('cssCount').innerHTML = cssEditor.value.length;
+            document.getElementById('jsCount').innerHTML = jsEditor.value.length;
+        }
+
+        function showStatus(message, isError = false) {
+            statusDiv.innerHTML = isError ? `⚠️ ${message}` : `✅ ${message}`;
+            statusDiv.style.background = isError ? 'rgba(231,76,60,0.9)' : 'rgba(0,0,0,0.8)';
+            setTimeout(() => {
+                if (statusDiv.innerHTML === `✅ ${message}` || statusDiv.innerHTML === `⚠️ ${message}`) {
+                    statusDiv.innerHTML = '✅ Pronto';
+                    statusDiv.style.background = 'rgba(0,0,0,0.8)';
+                }
+            }, 3000);
+        }
+
+        function compileCode() {
+            if (isCompiling) return;
+            isCompiling = true;
+            
+            try {
+                const html = htmlEditor.value || '';
+                const css = cssEditor.value || '';
+                const js = jsEditor.value || '';
+                
+                const fullDocument = `<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Resultado</title>
+    <style>*{margin:0;padding:0;box-sizing:border-box;}body{padding:20px;}${css}</style>
+</head>
+<body>${html}<script>try{${js}}catch(e){console.error(e)}<\/script></body>
+</html>`;
+                
+                resultFrame.srcdoc = fullDocument;
+                localStorage.setItem('htmlCode', htmlEditor.value);
+                localStorage.setItem('cssCode', cssEditor.value);
+                localStorage.setItem('jsCode', jsEditor.value);
+                updateCounters();
+                
+            } catch (error) {
+                showStatus('Erro na compilação', true);
+            } finally {
+                setTimeout(() => { isCompiling = false; }, 100);
+            }
+        }
+
+        function autoCompile() {
+            clearTimeout(compileTimeout);
+            compileTimeout = setTimeout(() => { compileCode(); }, 400);
+            updateCounters();
+        }
+
+        function loadFromLocalStorage() {
+            const savedHtml = localStorage.getItem('htmlCode');
+            const savedCss = localStorage.getItem('cssCode');
+            const savedJs = localStorage.getItem('jsCode');
+            
+            if (savedHtml) htmlEditor.value = savedHtml;
+            if (savedCss) cssEditor.value = savedCss;
+            if (savedJs) jsEditor.value = savedJs;
+            
+            if (!savedHtml && !savedCss && !savedJs) {
+                loadExample();
+            }
+            
+            compileCode();
+            updateCounters();
+        }
+
+        function clearAll() {
+            if (confirm('Tem certeza?')) {
+                htmlEditor.value = '';
+                cssEditor.value = '';
+                jsEditor.value = '';
+                compileCode();
+                localStorage.removeItem('htmlCode');
+                localStorage.removeItem('cssCode');
+                localStorage.removeItem('jsCode');
+                updateCounters();
+                showStatus('Código limpo!');
+            }
+        }
+
+        function loadExample() {
+            htmlEditor.value = `<div style="text-align:center;padding:50px">
+    <h1>🎨 Compilador Funcionando!</h1>
+    <p>Teste o sistema de avaliação!</p>
+    <button onclick="alert('Funcionou!')" style="padding:10px 20px;background:#667eea;color:white;border:none;border-radius:10px">Clique aqui</button>
+</div>`;
+            cssEditor.value = `body {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    font-family: Arial;
+    min-height: 100vh;
+}
+div { background: white; border-radius: 20px; padding: 30px; max-width: 500px; margin: auto; }`;
+            jsEditor.value = `console.log('Exemplo carregado!');`;
+            compileCode();
+            showStatus('Exemplo carregado!');
+        }
+
+        // ========================================
+        // UI
+        // ========================================
+        function toggleEditors() {
+            const editorsArea = document.getElementById('editorsArea');
+            editorsCollapsed = !editorsCollapsed;
+            if (editorsCollapsed) {
+                editorsArea.style.height = '40px';
+                editorsArea.classList.add('collapsed');
+            } else {
+                editorsArea.style.height = 'auto';
+                editorsArea.classList.remove('collapsed');
+            }
+        }
+
+        function toggleFullscreenResult() {
+            const resultArea = document.getElementById('resultArea');
+            if (!document.fullscreenElement) {
+                resultArea.requestFullscreen().catch(err => showStatus('Erro tela cheia', true));
+            } else {
+                document.exitFullscreen();
+            }
+        }
+
+        function openEditorFullscreen(type) {
+            const modal = document.getElementById('fullscreenModal');
+            const textarea = document.getElementById('fullscreenTextarea');
+            const modalTitle = document.getElementById('modalTitle');
+            
+            if (type === 'html') {
+                textarea.value = htmlEditor.value;
+                modalTitle.innerHTML = '📄 Editor HTML';
+                currentFullscreenEditor = 'html';
+            } else if (type === 'css') {
+                textarea.value = cssEditor.value;
+                modalTitle.innerHTML = '🎨 Editor CSS';
+                currentFullscreenEditor = 'css';
+            } else {
+                textarea.value = jsEditor.value;
+                modalTitle.innerHTML = '⚡ Editor JavaScript';
+                currentFullscreenEditor = 'js';
+            }
+            
+            modal.classList.add('active');
+            document.addEventListener('keydown', handleEscKey);
+        }
+
+        function closeEditorFullscreen() {
+            const modal = document.getElementById('fullscreenModal');
+            const textarea = document.getElementById('fullscreenTextarea');
+            
+            if (currentFullscreenEditor === 'html') htmlEditor.value = textarea.value;
+            else if (currentFullscreenEditor === 'css') cssEditor.value = textarea.value;
+            else if (currentFullscreenEditor === 'js') jsEditor.value = textarea.value;
+            
+            modal.classList.remove('active');
+            document.removeEventListener('keydown', handleEscKey);
+            compileCode();
+            showStatus('Salvo!');
+        }
+
+        function handleEscKey(e) {
+            if (e.key === 'Escape') closeEditorFullscreen();
+        }
+
+        // ========================================
+        // AVALIAÇÃO
+        // ========================================
+        function openEvaluationModal() {
+            document.getElementById('evaluationModal').classList.add('active');
+        }
+
+        function closeEvaluationModal() {
+            document.getElementById('evaluationModal').classList.remove('active');
+        }
+
+        function saveLocalEvaluation(formData) {
+            const evaluations = JSON.parse(localStorage.getItem('evaluations') || '[]');
+            evaluations.push({ ...formData, data: new Date().toLocaleString('pt-BR'), id: Date.now() });
+            localStorage.setItem('evaluations', JSON.stringify(evaluations));
+        }
+
+        function submitEvaluation() {
+            const nome = document.getElementById('studentName').value.trim();
+            const email = document.getElementById('studentEmail').value.trim();
+            const turma = document.getElementById('studentClass').value.trim();
+            const rating = document.querySelector('input[name="rating"]:checked');
+            const comentarios = document.getElementById('studentComments').value;
+            const dificuldade = document.getElementById('studentDifficulty').value;
+            
+            if (!nome) { showStatus('Digite seu nome', true); return; }
+            if (!email) { showStatus('Digite seu e-mail', true); return; }
+            if (!email.includes('@')) { showStatus('E-mail inválido', true); return; }
+            if (!rating) { showStatus('Selecione uma nota', true); return; }
+            
+            const formData = {
+                nome, email, turma: turma || 'Não informado',
+                nota: rating.value, dificuldade: dificuldade || 'Não informado',
+                comentarios: comentarios || 'Sem comentários'
+            };
+            
+            saveLocalEvaluation(formData);
+            showStatus(`Avaliação enviada! Obrigado, ${nome}!`);
+            closeEvaluationModal();
+            
+            document.getElementById('studentName').value = '';
+            document.getElementById('studentEmail').value = '';
+            document.getElementById('studentClass').value = '';
+            document.getElementById('studentComments').value = '';
+            document.getElementById('studentDifficulty').value = '';
+            if (rating) rating.checked = false;
+        }
+
+        // ========================================
+        // EVENTOS E INICIALIZAÇÃO
+        // ========================================
+        htmlEditor.addEventListener('input', autoCompile);
+        cssEditor.addEventListener('input', autoCompile);
+        jsEditor.addEventListener('input', autoCompile);
+        
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+                e.preventDefault();
+                compileCode();
+            }
+        });
+        
+        document.addEventListener('click', (e) => {
+            const modal = document.getElementById('evaluationModal');
+            if (e.target === modal) closeEvaluationModal();
+        });
+        
+        loadFromLocalStorage();
+    </script>
+</body>
+</html>
